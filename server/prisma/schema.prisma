@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SELLER
+  BUYER
+  SUPERADMIN
+}
+
+enum RequestStatus {
+  PENDING_PRICE
+  PRICED
+  UNAVAILABLE
+  ACCEPTED
+  REJECTED
+  CONFIRMED
+  EXPIRED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  firstName    String
+  lastName     String
+  username     String   @unique
+  pin          String
+  profileImage String?
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sellerRequests Request[] @relation("SellerRequests")
+  buyerRequests  Request[] @relation("BuyerRequests")
+  orders         Order[]   @relation("BuyerOrders")
+  sellerOrders   Order[]   @relation("SellerOrders")
+}
+
+model Request {
+  id           String        @id @default(uuid())
+  productName  String?
+  productImage String?
+  description  String?
+  price        Float?
+  currency     String        @default("DT")
+  status       RequestStatus @default(PENDING_PRICE)
+  deadline     DateTime      @default("2026-07-08T23:59:59.000Z")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  buyerId  String
+  buyer    User   @relation("BuyerRequests", fields: [buyerId], references: [id])
+  sellerId String
+  seller   User   @relation("SellerRequests", fields: [sellerId], references: [id])
+
+  order Order?
+}
+
+model Order {
+  id        String   @id @default(uuid())
+  price     Float
+  currency  String   @default("DT")
+  status    String   @default("CONFIRMED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requestId String  @unique
+  request   Request @relation(fields: [requestId], references: [id])
+  buyerId   String
+  buyer     User    @relation("BuyerOrders", fields: [buyerId], references: [id])
+  sellerId  String
+  seller    User    @relation("SellerOrders", fields: [sellerId], references: [id])
+}
