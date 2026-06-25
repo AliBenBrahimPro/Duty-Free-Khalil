@@ -82,6 +82,24 @@ export const getOrders = () => request("/orders");
 
 export const getOrderStats = () => request("/orders/stats");
 
+// Products
+export const getProducts = () => request("/products");
+export const getMyProducts = () => request("/products/mine");
+export const getProduct = (id: string) => request(`/products/${id}`);
+export const createProduct = (formData: FormData) =>
+  request("/products", { method: "POST", body: formData });
+export const updateProduct = (id: string, formData: FormData) =>
+  request(`/products/${id}`, { method: "PATCH", body: formData });
+export const buyProduct = (id: string) =>
+  request(`/products/${id}/buy`, { method: "POST" });
+export const getProductPurchases = (id: string) =>
+  request(`/products/${id}/purchases`);
+export const confirmPurchase = (id: string) =>
+  request(`/products/purchases/${id}/confirm`, { method: "PATCH" });
+export const cancelPurchase = (id: string) =>
+  request(`/products/purchases/${id}/cancel`, { method: "PATCH" });
+export const getMyPurchases = () => request("/products/my-purchases");
+
 // Admin
 export const getAdminUsers = () => request("/admin/users");
 export const getAdminStats = () => request("/admin/stats");
