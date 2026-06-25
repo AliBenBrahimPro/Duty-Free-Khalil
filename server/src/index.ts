@@ -2,11 +2,11 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "path";
-import authRoutes from "./routes/auth.routes";
-import requestRoutes from "./routes/request.routes";
-import orderRoutes from "./routes/order.routes";
-import adminRoutes from "./routes/admin.routes";
-import { RequestService } from "./services/request.service";
+import authRoutes from "./routes/auth.routes.js";
+import requestRoutes from "./routes/request.routes.js";
+import orderRoutes from "./routes/order.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import { RequestService } from "./services/request.service.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;

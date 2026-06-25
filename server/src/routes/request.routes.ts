@@ -1,7 +1,7 @@
 import { Router, Response } from "express";
-import { authenticate, AuthRequest } from "../middleware/auth";
-import { RequestService } from "../services/request.service";
-import { upload } from "../config/multer";
+import { authenticate, AuthRequest } from "../middleware/auth.js";
+import { RequestService } from "../services/request.service.js";
+import { upload } from "../config/multer.js";
 
 const router = Router();
 

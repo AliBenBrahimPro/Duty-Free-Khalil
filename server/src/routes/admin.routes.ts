@@ -1,6 +1,6 @@
 import { Router, Response } from "express";
-import { authenticate, AuthRequest, requireRole } from "../middleware/auth";
-import prisma from "../config/prisma";
+import { authenticate, AuthRequest, requireRole } from "../middleware/auth.js";
+import prisma from "../config/prisma.js";
 
 const router = Router();
 
@@ -72,7 +72,7 @@ router.get("/stats", async (_req: AuthRequest, res: Response) => {
       pendingRequests,
       totalRevenue: revenue._sum.price || 0,
       statusCounts: Object.fromEntries(
-        statusCounts.map((s) => [s.status, s._count])
+        statusCounts.map((s: any) => [s.status, s._count])
       ),
     });
   } catch (err: any) {

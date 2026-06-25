@@ -2,7 +2,7 @@ import "dotenv/config";
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 // @ts-ignore - generated prisma client
-import { PrismaClient } from "../../generated/prisma/client";
+import { PrismaClient } from "../../generated/prisma/client.js";
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
