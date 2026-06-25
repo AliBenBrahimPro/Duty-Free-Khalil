@@ -116,3 +116,14 @@ model Order {
   sellerId  String
   seller    User    @relation("SellerOrders", fields: [sellerId], references: [id])
 }
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  userId    String?
+  userName  String?
+  details   String?
+  createdAt DateTime @default(now())
+}

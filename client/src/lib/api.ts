@@ -101,5 +101,11 @@ export const cancelPurchase = (id: string) =>
 export const getMyPurchases = () => request("/products/my-purchases");
 
 // Admin
+export const deleteProduct = (id: string) =>
+  request(`/products/${id}`, { method: "DELETE" });
+
+// Admin
 export const getAdminUsers = () => request("/admin/users");
 export const getAdminStats = () => request("/admin/stats");
+export const getAuditLogs = (limit = 100, offset = 0) =>
+  request(`/admin/audit?limit=${limit}&offset=${offset}`);

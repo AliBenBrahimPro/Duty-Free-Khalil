@@ -183,6 +183,17 @@ const translations = {
     "products.sold": "sold",
     "products.myPurchases": "My Purchases",
     "products.limited": "Limited",
+    "products.delete": "Delete Product",
+    "products.deleteConfirm": "Are you sure you want to delete this product?",
+    "products.deleted": "Product deleted",
+    "products.edit": "Edit",
+
+    // Audit
+    "audit.title": "Audit Log",
+    "audit.noLogs": "No activity yet",
+    "audit.action": "Action",
+    "audit.user": "User",
+    "audit.details": "Details",
 
     // General
     "general.loading": "Loading...",
@@ -365,6 +376,17 @@ const translations = {
     "products.sold": "vendus",
     "products.myPurchases": "Mes Achats",
     "products.limited": "Limite",
+    "products.delete": "Supprimer le produit",
+    "products.deleteConfirm": "Voulez-vous vraiment supprimer ce produit ?",
+    "products.deleted": "Produit supprime",
+    "products.edit": "Modifier",
+
+    // Audit
+    "audit.title": "Journal d'activite",
+    "audit.noLogs": "Aucune activite",
+    "audit.action": "Action",
+    "audit.user": "Utilisateur",
+    "audit.details": "Details",
 
     // General
     "general.loading": "Chargement...",

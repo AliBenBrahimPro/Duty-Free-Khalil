@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n";
-import { getAdminUsers, getAdminStats } from "@/lib/api";
+import { getAdminUsers, getAdminStats, getAuditLogs } from "@/lib/api";
 import { formatPrice, formatDate, resolveImageUrl } from "@/lib/utils";
 
 export default function AdminPage() {
@@ -13,18 +13,20 @@ export default function AdminPage() {
   const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"overview" | "users">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "audit">("overview");
 
   useEffect(() => {
     if (user && user.role !== "SUPERADMIN") {
       router.replace("/requests");
       return;
     }
-    Promise.all([getAdminUsers(), getAdminStats()])
-      .then(([u, s]) => {
+    Promise.all([getAdminUsers(), getAdminStats(), getAuditLogs()])
+      .then(([u, s, a]) => {
         setUsers(u);
         setStats(s);
+        setAuditLogs(a.logs || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -77,6 +79,14 @@ export default function AdminPage() {
           }`}
         >
           {t("admin.users")}
+        </button>
+        <button
+          onClick={() => setTab("audit")}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            tab === "audit" ? "bg-white text-slate-800 shadow-sm" : "text-slate-400"
+          }`}
+        >
+          {t("audit.title")}
         </button>
       </div>
 
@@ -197,6 +207,41 @@ export default function AdminPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {tab === "audit" && (
+        <div className="animate-fade-in">
+          {auditLogs.length === 0 ? (
+            <p className="text-center text-slate-400 text-sm py-16">{t("audit.noLogs")}</p>
+          ) : (
+            <div className="space-y-2">
+              {auditLogs.map((log: any, i: number) => {
+                const actionColors: Record<string, string> = {
+                  PRODUCT_CREATED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                  PRODUCT_UPDATED: "bg-indigo-50 text-indigo-700 border-indigo-200",
+                  PRODUCT_DELETED: "bg-rose-50 text-rose-600 border-rose-200",
+                  PURCHASE_REQUESTED: "bg-amber-50 text-amber-700 border-amber-200",
+                  PURCHASE_CONFIRMED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                  PURCHASE_CANCELLED: "bg-slate-50 text-slate-500 border-slate-200",
+                };
+                return (
+                  <div key={log.id} className="bg-white/90 backdrop-blur-sm rounded-xl border border-white/60 px-4 py-3 shadow-sm animate-slide-up flex items-start gap-3"
+                    style={{ animationDelay: `${i * 20}ms` }}>
+                    <div className={`mt-0.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border whitespace-nowrap ${actionColors[log.action] || "bg-slate-50 text-slate-500 border-slate-200"}`}>
+                      {log.action.replace(/_/g, " ")}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-700 truncate">{log.details || log.entity}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {log.userName || "System"} &middot; {formatDate(log.createdAt, t)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

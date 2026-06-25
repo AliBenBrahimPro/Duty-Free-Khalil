@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import { authenticate, AuthRequest, requireRole } from "../middleware/auth.js";
 import prisma from "../config/prisma.js";
+import { AuditService } from "../services/audit.service.js";
 
 const router = Router();
 
@@ -75,6 +76,18 @@ router.get("/stats", async (_req: AuthRequest, res: Response) => {
         statusCounts.map((s: any) => [s.status, s._count])
       ),
     });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Audit logs
+router.get("/audit", async (req: AuthRequest, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const offset = parseInt(req.query.offset as string) || 0;
+    const result = await AuditService.getLogs(limit, offset);
+    res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
