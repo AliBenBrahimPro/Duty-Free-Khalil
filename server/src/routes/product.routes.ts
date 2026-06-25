@@ -145,4 +145,23 @@ router.patch("/purchases/:id/cancel", authenticate, async (req: AuthRequest, res
   }
 });
 
+// Get comments for a product
+router.get("/:id/comments", authenticate, async (req: AuthRequest, res: Response) => {
+  try { res.json(await ProductService.getComments(req.params.id as string)); }
+  catch (err: any) { res.status(400).json({ error: err.message }); }
+});
+
+// Add comment to a product
+router.post("/:id/comments", authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) { res.status(400).json({ error: "Comment text is required" }); return; }
+    const userName = await getUserName(req.user!.id);
+    const comment = await ProductService.addComment(
+      req.params.id as string, req.user!.id, userName, req.user!.role, text.trim()
+    );
+    res.status(201).json(comment);
+  } catch (err: any) { res.status(400).json({ error: err.message }); }
+});
+
 export default router;

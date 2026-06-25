@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { getProduct, buyProduct, getProductPurchases, confirmPurchase, cancelPurchase, updateProduct, deleteProduct } from "@/lib/api";
+import { getProduct, buyProduct, getProductPurchases, confirmPurchase, cancelPurchase, updateProduct, deleteProduct, addComment } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n";
 import { formatPrice, formatDate, resolveImageUrl } from "@/lib/utils";
@@ -18,6 +18,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+
+  // Comment state
+  const [commentText, setCommentText] = useState("");
+  const [commentLoading, setCommentLoading] = useState(false);
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -51,6 +55,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   };
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
+
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+    setCommentLoading(true);
+    try {
+      await addComment(id, commentText.trim());
+      setCommentText("");
+      await loadProduct();
+    } catch (err: any) { setError(err.message); }
+    finally { setCommentLoading(false); }
+  };
 
   const handleBuy = async () => {
     setActionLoading("buy"); setError("");
@@ -308,6 +323,76 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
       )}
+
+      {/* Comments Section */}
+      <div className="mt-6">
+        <h3 className="text-lg font-bold text-slate-900 mb-3">
+          {t("products.comments")} ({product.comments?.length || 0})
+        </h3>
+
+        {/* Comment input */}
+        <div className="flex gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-xs font-bold text-indigo-600">
+              {user?.firstName?.charAt(0) || "?"}
+            </span>
+          </div>
+          <div className="flex-1 flex gap-2">
+            <input
+              type="text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+              placeholder={t("products.addComment")}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm placeholder:text-slate-300"
+            />
+            <button
+              onClick={handleAddComment}
+              disabled={commentLoading || !commentText.trim()}
+              className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl active:scale-95 transition disabled:opacity-50 flex-shrink-0"
+            >
+              {commentLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Comments list */}
+        {(!product.comments || product.comments.length === 0) ? (
+          <p className="text-center text-slate-300 text-sm py-6">{t("products.noComments")}</p>
+        ) : (
+          <div className="space-y-3">
+            {product.comments.map((c: any) => {
+              const isMine = c.userId === user?.id;
+              const roleColor = c.userRole === "SELLER"
+                ? "bg-violet-50 text-violet-600 border-violet-200"
+                : c.userRole === "SUPERADMIN"
+                  ? "bg-red-50 text-red-500 border-red-200"
+                  : "bg-indigo-50 text-indigo-600 border-indigo-200";
+              return (
+                <div key={c.id} className={`rounded-2xl p-3.5 ${isMine ? "bg-indigo-50/50 border border-indigo-100" : "bg-white/80 border border-white/60"}`}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${roleColor}`}>
+                      {c.userName?.charAt(0) || "?"}
+                    </div>
+                    <span className="text-sm font-semibold text-slate-800">{c.userName}</span>
+                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${roleColor}`}>
+                      {c.userRole}
+                    </span>
+                    <span className="text-[10px] text-slate-300 ml-auto">{formatDate(c.createdAt, t)}</span>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed pl-9">{c.text}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

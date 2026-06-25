@@ -44,7 +44,7 @@ export default function RequestsPage() {
   ];
 
   return (
-    <div className="px-4 pt-8 animate-fade-in md:px-6 lg:px-8">
+    <div className="px-4 pt-8 animate-fade-in md:px-6 lg:px-8 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -144,7 +144,7 @@ export default function RequestsPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-3 pb-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 pb-4 md:gap-4 xl:grid-cols-3">
           {filtered.map((r) => (
             <RequestCard key={r.id} request={r} />
           ))}

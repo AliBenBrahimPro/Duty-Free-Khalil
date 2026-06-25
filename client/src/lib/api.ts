@@ -102,6 +102,13 @@ export const confirmPurchase = (id: string) =>
 export const cancelPurchase = (id: string) =>
   request(`/products/purchases/${id}/cancel`, { method: "PATCH" });
 export const getMyPurchases = () => request("/products/my-purchases");
+export const getComments = (productId: string) =>
+  request(`/products/${productId}/comments`);
+export const addComment = (productId: string, text: string) =>
+  request(`/products/${productId}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
 
 // Admin
 export const deleteProduct = (id: string) =>

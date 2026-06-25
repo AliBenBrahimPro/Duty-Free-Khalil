@@ -119,6 +119,7 @@ export class ProductService {
       include: {
         seller: { select: sellerSelect },
         purchases: { orderBy: { createdAt: "desc" }, take: 20 },
+        comments: { orderBy: { createdAt: "desc" } },
       },
     });
     if (!product) throw new Error("Product not found");
@@ -234,6 +235,22 @@ export class ProductService {
       where: { buyerId },
       include: { product: { include: { seller: { select: sellerSelect } } } },
       orderBy: { createdAt: "desc" },
+    });
+  }
+
+  static async addComment(productId: string, userId: string, userName: string, userRole: string, text: string) {
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (!product) throw new Error("Product not found");
+
+    return prisma.comment.create({
+      data: { text, productId, userId, userName, userRole },
+    });
+  }
+
+  static async getComments(productId: string) {
+    return prisma.comment.findMany({
+      where: { productId },
+      orderBy: { createdAt: "asc" },
     });
   }
 }
