@@ -17,8 +17,7 @@ jobs:
           script: |
             cd /home/ubuntu/khalildeals
             git pull origin main
-            docker compose down
-            docker compose build --no-cache
+            docker compose build --no-cache server client
             docker compose up -d
             sleep 10
             docker compose exec -T server npx prisma migrate deploy
