@@ -92,6 +92,8 @@ const translations = {
     "detail.purchaseConfirmed": "Purchase Confirmed",
     "detail.goBack": "Go back",
     "detail.notFound": "Request not found",
+    "detail.delete": "Delete Request",
+    "detail.deleteConfirm": "Are you sure you want to delete this request?",
 
     // Orders
     "orders.title": "Orders",
@@ -285,6 +287,8 @@ const translations = {
     "detail.purchaseConfirmed": "Achat confirme",
     "detail.goBack": "Retour",
     "detail.notFound": "Demande introuvable",
+    "detail.delete": "Supprimer la demande",
+    "detail.deleteConfirm": "Voulez-vous vraiment supprimer cette demande ?",
 
     // Orders
     "orders.title": "Commandes",

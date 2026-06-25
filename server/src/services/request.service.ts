@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import { AuditService } from "./audit.service.js";
 
 const userSelect = { id: true, firstName: true, lastName: true, username: true, profileImage: true };
 
@@ -33,44 +34,46 @@ export class RequestService {
     });
   }
 
-  static async setPrice(requestId: string, sellerId: string) {
+  static async setPriceValue(requestId: string, userId: string, role: string, price: number) {
     const request = await prisma.request.findUnique({ where: { id: requestId } });
     if (!request) throw new Error("Request not found");
-    if (request.sellerId !== sellerId) throw new Error("Not your request");
+    if (role !== "SUPERADMIN" && request.sellerId !== userId) throw new Error("Not your request");
     if (request.status !== "PENDING_PRICE") throw new Error("Request already handled");
     if (new Date() > request.deadline) {
       await prisma.request.update({ where: { id: requestId }, data: { status: "EXPIRED" } });
       throw new Error("Request has expired");
     }
-    return request;
-  }
 
-  static async setPriceValue(requestId: string, sellerId: string, price: number) {
-    await this.setPrice(requestId, sellerId);
-    return prisma.request.update({
+    const updated = await prisma.request.update({
       where: { id: requestId },
       data: { price, status: "PRICED" },
       include: { buyer: { select: userSelect }, seller: { select: userSelect } },
     });
+
+    await AuditService.log({ action: "REQUEST_PRICED", entity: "Request", entityId: requestId, userId, details: `${updated.productName} — ${price} DT` });
+    return updated;
   }
 
-  static async markUnavailable(requestId: string, sellerId: string) {
+  static async markUnavailable(requestId: string, userId: string, role: string) {
     const request = await prisma.request.findUnique({ where: { id: requestId } });
     if (!request) throw new Error("Request not found");
-    if (request.sellerId !== sellerId) throw new Error("Not your request");
+    if (role !== "SUPERADMIN" && request.sellerId !== userId) throw new Error("Not your request");
     if (request.status !== "PENDING_PRICE") throw new Error("Request already handled");
 
-    return prisma.request.update({
+    const updated = await prisma.request.update({
       where: { id: requestId },
       data: { status: "UNAVAILABLE" },
       include: { buyer: { select: userSelect }, seller: { select: userSelect } },
     });
+
+    await AuditService.log({ action: "REQUEST_UNAVAILABLE", entity: "Request", entityId: requestId, userId, details: updated.productName || "" });
+    return updated;
   }
 
-  static async acceptPrice(requestId: string, buyerId: string) {
+  static async acceptPrice(requestId: string, userId: string, role: string) {
     const request = await prisma.request.findUnique({ where: { id: requestId } });
     if (!request) throw new Error("Request not found");
-    if (request.buyerId !== buyerId) throw new Error("Not your request");
+    if (role !== "SUPERADMIN" && request.buyerId !== userId) throw new Error("Not your request");
     if (request.status !== "PRICED") throw new Error("No price to accept");
     if (new Date() > request.deadline) {
       await prisma.request.update({ where: { id: requestId }, data: { status: "EXPIRED" } });
@@ -90,20 +93,38 @@ export class RequestService {
       }),
     ]);
 
+    await AuditService.log({ action: "REQUEST_CONFIRMED", entity: "Request", entityId: requestId, userId, details: `${request.productName} — ${request.price} DT` });
     return { request: updatedRequest, order };
   }
 
-  static async rejectPrice(requestId: string, buyerId: string) {
+  static async rejectPrice(requestId: string, userId: string, role: string) {
     const request = await prisma.request.findUnique({ where: { id: requestId } });
     if (!request) throw new Error("Request not found");
-    if (request.buyerId !== buyerId) throw new Error("Not your request");
+    if (role !== "SUPERADMIN" && request.buyerId !== userId) throw new Error("Not your request");
     if (request.status !== "PRICED") throw new Error("No price to reject");
 
-    return prisma.request.update({
+    const updated = await prisma.request.update({
       where: { id: requestId },
       data: { status: "REJECTED" },
       include: { buyer: { select: userSelect }, seller: { select: userSelect } },
     });
+
+    await AuditService.log({ action: "REQUEST_REJECTED", entity: "Request", entityId: requestId, userId, details: updated.productName || "" });
+    return updated;
+  }
+
+  static async deleteRequest(requestId: string, userId: string, role: string) {
+    const request = await prisma.request.findUnique({ where: { id: requestId } });
+    if (!request) throw new Error("Request not found");
+    if (role !== "SUPERADMIN" && request.buyerId !== userId && request.sellerId !== userId) {
+      throw new Error("Access denied");
+    }
+
+    // Delete related order if exists
+    await prisma.order.deleteMany({ where: { requestId } });
+    await prisma.request.delete({ where: { id: requestId } });
+
+    await AuditService.log({ action: "REQUEST_DELETED", entity: "Request", entityId: requestId, userId, details: request.productName || "" });
   }
 
   static async getUserRequests(userId: string, role: string) {

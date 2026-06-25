@@ -77,6 +77,9 @@ export const acceptPrice = (id: string) =>
 export const rejectPrice = (id: string) =>
   request(`/requests/${id}/reject`, { method: "PATCH" });
 
+export const deleteRequest = (id: string) =>
+  request(`/requests/${id}`, { method: "DELETE" });
+
 // Orders
 export const getOrders = () => request("/orders");
 
