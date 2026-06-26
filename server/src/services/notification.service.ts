@@ -7,18 +7,48 @@ export class NotificationService {
     });
   }
 
-  static async getForUser(userId: string, limit = 50) {
-    return prisma.notification.findMany({
-      where: { userId },
+  static async getForUser(userId: string, opts: { cursor?: string; limit?: number } = {}) {
+    const { cursor, limit = 50 } = opts;
+    const where: any = { userId };
+    if (cursor) {
+      where.createdAt = { lt: (await prisma.notification.findUnique({ where: { id: cursor } }))?.createdAt };
+    }
+
+    const notifications = await prisma.notification.findMany({
+      where,
       orderBy: { createdAt: "desc" },
-      take: limit,
+      take: limit + 1,
     });
+
+    const hasMore = notifications.length > limit;
+    if (hasMore) notifications.pop();
+
+    return {
+      data: notifications,
+      nextCursor: hasMore ? notifications[notifications.length - 1]?.id : null,
+    };
   }
 
   static async getUnreadCount(userId: string) {
     return prisma.notification.count({
       where: { userId, read: false },
     });
+  }
+
+  static async getSummary(userId: string, role: string) {
+    const [notifResult, unreadCount, pendingPurchasesCount] = await Promise.all([
+      this.getForUser(userId, { limit: 50 }),
+      this.getUnreadCount(userId),
+      role === "SELLER"
+        ? prisma.purchase.count({ where: { sellerId: userId, status: "PENDING" } })
+        : Promise.resolve(0),
+    ]);
+
+    return {
+      notifications: notifResult.data,
+      unreadCount,
+      pendingPurchasesCount,
+    };
   }
 
   static async markAsRead(notificationId: string, userId: string) {
@@ -83,7 +113,6 @@ export class NotificationService {
   }
 
   static async onRequestComment(requestId: string, request: any, commentUserId: string, userName: string) {
-    // Notify the other party (not the commenter)
     const targetId = request.buyerId === commentUserId ? request.sellerId : request.buyerId;
     await this.create(targetId, {
       type: "REQUEST_COMMENT",
@@ -121,7 +150,6 @@ export class NotificationService {
   }
 
   static async onProductComment(productId: string, product: any, commentUserId: string, userName: string) {
-    // Notify seller about comments on their product
     if (product.sellerId !== commentUserId) {
       await this.create(product.sellerId, {
         type: "PRODUCT_COMMENT",
@@ -129,6 +157,23 @@ export class NotificationService {
         message: `${userName} commented on "${product.name}"`,
         link: `/browse/${productId}`,
       });
+    }
+  }
+
+  // Notify buyers when their requests expire
+  static async onRequestsExpired(requestIds: string[]) {
+    if (!requestIds.length) return;
+    const requests = await prisma.request.findMany({
+      where: { id: { in: requestIds } },
+      select: { id: true, buyerId: true, productName: true },
+    });
+    for (const req of requests) {
+      await this.create(req.buyerId, {
+        type: "REQUEST_EXPIRED",
+        title: "Request Expired",
+        message: `Your request for "${req.productName || "a product"}" has expired`,
+        link: `/requests/${req.id}`,
+      }).catch((err) => console.error("Failed to create expiry notification:", err));
     }
   }
 }

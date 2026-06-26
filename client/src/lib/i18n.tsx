@@ -56,6 +56,7 @@ const translations = {
     "requests.actionNeeded": "Action needed",
     "requests.setPrice": "Set a price",
     "requests.waiting": "Waiting...",
+    "requests.search": "Search products...",
 
     // New Request
     "newRequest.title": "Ask for Price",
@@ -161,6 +162,7 @@ const translations = {
     "nav.myProducts": "My Products",
     "products.browse": "Browse Products",
     "products.noProducts": "No products available",
+    "products.noProductsDesc": "Check back later for new items",
     "products.inStock": "in stock",
     "products.soldOut": "Sold Out",
     "products.remaining": "remaining",
@@ -216,6 +218,8 @@ const translations = {
     "chat.holdToRecord": "Hold to record",
     "chat.recording": "Recording...",
     "chat.voiceMessage": "Voice message",
+    "chat.today": "Today",
+    "chat.yesterday": "Yesterday",
 
     // Purchases
     "purchases.title": "Purchase Requests",
@@ -236,8 +240,24 @@ const translations = {
     "notif.empty": "No notifications yet",
     "notif.markAllRead": "Mark all read",
 
+    // Errors
+    "error.somethingWrong": "Something went wrong",
+    "error.retry": "Try again",
+    "error.INVALID_CREDENTIALS": "Invalid username or PIN",
+    "error.USERNAME_TAKEN": "This username is already taken",
+    "error.PIN_TOO_WEAK": "This PIN is too easy to guess. Choose a stronger one.",
+    "error.INVALID_PIN_FORMAT": "PIN must be exactly 6 digits",
+    "error.FIELDS_REQUIRED": "Please fill in all required fields",
+    "error.TOO_MANY_ATTEMPTS": "Too many attempts. Please wait and try again.",
+    "error.COMMENT_TOO_LONG": "Comment is too long (max 2000 characters)",
+    "error.INVALID_PRICE": "Please enter a valid price",
+    "error.INVALID_STOCK": "Please enter a valid stock quantity",
+    "error.FILE_TOO_LARGE": "File is too large",
+    "error.INVALID_FILE_TYPE": "File type not supported",
+
     // General
     "general.loading": "Loading...",
+    "general.loadMore": "Load more",
   },
   fr: {
     // Auth
@@ -290,6 +310,7 @@ const translations = {
     "requests.actionNeeded": "Action requise",
     "requests.setPrice": "Donner un prix",
     "requests.waiting": "En attente...",
+    "requests.search": "Rechercher un produit...",
 
     // New Request
     "newRequest.title": "Demander le prix",
@@ -395,6 +416,7 @@ const translations = {
     "nav.myProducts": "Mes Produits",
     "products.browse": "Parcourir les produits",
     "products.noProducts": "Aucun produit disponible",
+    "products.noProductsDesc": "Revenez plus tard pour de nouveaux articles",
     "products.inStock": "en stock",
     "products.soldOut": "Rupture de stock",
     "products.remaining": "restants",
@@ -450,6 +472,8 @@ const translations = {
     "chat.holdToRecord": "Maintenez pour enregistrer",
     "chat.recording": "Enregistrement...",
     "chat.voiceMessage": "Message vocal",
+    "chat.today": "Aujourd'hui",
+    "chat.yesterday": "Hier",
 
     // Purchases
     "purchases.title": "Demandes d'achat",
@@ -470,8 +494,24 @@ const translations = {
     "notif.empty": "Aucune notification",
     "notif.markAllRead": "Tout marquer lu",
 
+    // Errors
+    "error.somethingWrong": "Une erreur est survenue",
+    "error.retry": "Reessayer",
+    "error.INVALID_CREDENTIALS": "Nom d'utilisateur ou PIN invalide",
+    "error.USERNAME_TAKEN": "Ce nom d'utilisateur est deja pris",
+    "error.PIN_TOO_WEAK": "Ce PIN est trop facile a deviner. Choisissez-en un plus fort.",
+    "error.INVALID_PIN_FORMAT": "Le PIN doit contenir exactement 6 chiffres",
+    "error.FIELDS_REQUIRED": "Veuillez remplir tous les champs requis",
+    "error.TOO_MANY_ATTEMPTS": "Trop de tentatives. Veuillez patienter.",
+    "error.COMMENT_TOO_LONG": "Le commentaire est trop long (max 2000 caracteres)",
+    "error.INVALID_PRICE": "Veuillez entrer un prix valide",
+    "error.INVALID_STOCK": "Veuillez entrer une quantite valide",
+    "error.FILE_TOO_LARGE": "Le fichier est trop volumineux",
+    "error.INVALID_FILE_TYPE": "Type de fichier non supporte",
+
     // General
     "general.loading": "Chargement...",
+    "general.loadMore": "Charger plus",
   },
 } as const;
 

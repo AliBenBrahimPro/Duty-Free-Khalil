@@ -22,10 +22,15 @@ async function request(endpoint: string, options: RequestInit = {}) {
     headers,
   });
 
-  const data = await res.json();
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error("SERVER_ERROR");
+  }
 
   if (!res.ok) {
-    throw new Error(data.error || "Something went wrong");
+    throw new Error(data.error || "UNKNOWN_ERROR");
   }
 
   return data;
@@ -58,7 +63,14 @@ export const getSellers = () => request("/requests/sellers");
 export const createRequest = (formData: FormData) =>
   request("/requests", { method: "POST", body: formData });
 
-export const getRequests = () => request("/requests");
+export const getRequests = (params?: { cursor?: string; limit?: number; search?: string }) => {
+  const qs = new URLSearchParams();
+  if (params?.cursor) qs.set("cursor", params.cursor);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.search) qs.set("search", params.search);
+  const q = qs.toString();
+  return request(`/requests${q ? `?${q}` : ""}`);
+};
 
 export const getRequest = (id: string) => request(`/requests/${id}`);
 
@@ -80,6 +92,9 @@ export const rejectPrice = (id: string) =>
 export const deleteRequest = (id: string) =>
   request(`/requests/${id}`, { method: "DELETE" });
 
+export const getChatToken = (requestId: string) =>
+  request(`/requests/${requestId}/chat/token`, { method: "POST" });
+
 export const getRequestComments = (requestId: string) =>
   request(`/requests/${requestId}/comments`);
 export const addRequestComment = (requestId: string, text: string, file?: Blob, type: string = "text") => {
@@ -99,7 +114,13 @@ export const getOrders = () => request("/orders");
 export const getOrderStats = () => request("/orders/stats");
 
 // Products
-export const getProducts = () => request("/products");
+export const getProducts = (params?: { cursor?: string; limit?: number }) => {
+  const qs = new URLSearchParams();
+  if (params?.cursor) qs.set("cursor", params.cursor);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  const q = qs.toString();
+  return request(`/products${q ? `?${q}` : ""}`);
+};
 export const getMyProducts = () => request("/products/mine");
 export const getProduct = (id: string) => request(`/products/${id}`);
 export const createProduct = (formData: FormData) =>
@@ -131,13 +152,18 @@ export const deleteProduct = (id: string) =>
 // Notifications
 export const getNotifications = () => request("/notifications");
 export const getUnreadCount = () => request("/notifications/unread-count");
+export const getNotificationSummary = () => request("/notifications/summary");
 export const markNotificationRead = (id: string) =>
   request(`/notifications/${id}/read`, { method: "PATCH" });
 export const markAllNotificationsRead = () =>
   request("/notifications/read-all", { method: "PATCH" });
 
+// Config
+export const getConfig = () => request("/config");
+
 // Admin
-export const getAdminUsers = () => request("/admin/users");
+export const getAdminUsers = (limit = 50, offset = 0) =>
+  request(`/admin/users?limit=${limit}&offset=${offset}`);
 export const getAdminStats = () => request("/admin/stats");
 export const getAuditLogs = (limit = 100, offset = 0) =>
   request(`/admin/audit?limit=${limit}&offset=${offset}`);

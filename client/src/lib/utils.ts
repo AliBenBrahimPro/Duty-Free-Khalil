@@ -82,10 +82,10 @@ export function getStatusLabel(status: string) {
   return labels[status] || status;
 }
 
-export function timeUntilDeadline(t?: T) {
-  const deadline = new Date("2026-07-08T23:59:59.000Z");
+export function timeUntilDeadline(t?: T, deadline?: string) {
+  const deadlineDate = new Date(deadline || "2026-07-08T23:59:59.000Z");
   const now = new Date();
-  const diff = deadline.getTime() - now.getTime();
+  const diff = deadlineDate.getTime() - now.getTime();
   if (diff <= 0) return t ? t("time.expired") : "Expired";
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));

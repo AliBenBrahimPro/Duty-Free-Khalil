@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { addRequestComment } from "@/lib/api";
+import { addRequestComment, getChatToken } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, resolveImageUrl } from "@/lib/utils";
@@ -48,6 +48,9 @@ export default function RequestChat({ requestId, initialMessages }: RequestChatP
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const esRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const reconnectDelayRef = useRef(1000);
 
   const scrollToBottom = useCallback((smooth = true) => {
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
@@ -56,29 +59,63 @@ export default function RequestChat({ requestId, initialMessages }: RequestChatP
   useEffect(() => { setMessages(initialMessages || []); }, [initialMessages]);
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
-  // SSE
-  useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (!token || !requestId) return;
-    const es = new EventSource(`${API_URL}/requests/${requestId}/chat/stream?token=${token}`);
-    es.addEventListener("connected", () => setConnected(true));
-    es.addEventListener("new_message", (e) => {
-      try {
-        const msg: Message = JSON.parse(e.data);
-        setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
-      } catch { /* */ }
-    });
-    es.addEventListener("typing", (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setTypingUser(data.userName);
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
-      } catch { /* */ }
-    });
-    es.onerror = () => setConnected(false);
-    return () => { es.close(); setConnected(false); };
+  // SSE with token exchange + auto-reconnect
+  const connectSSE = useCallback(async () => {
+    if (!requestId) return;
+
+    try {
+      const { token: sseToken } = await getChatToken(requestId);
+      const es = new EventSource(`${API_URL}/requests/${requestId}/chat/stream?token=${sseToken}`);
+      esRef.current = es;
+
+      es.addEventListener("connected", () => {
+        setConnected(true);
+        reconnectDelayRef.current = 1000; // reset backoff on success
+      });
+
+      es.addEventListener("new_message", (e) => {
+        try {
+          const msg: Message = JSON.parse(e.data);
+          setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
+        } catch { /* */ }
+      });
+
+      es.addEventListener("typing", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          setTypingUser(data.userName);
+          clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
+        } catch { /* */ }
+      });
+
+      es.onerror = () => {
+        setConnected(false);
+        es.close();
+        esRef.current = null;
+        // Exponential backoff reconnect: 1s -> 2s -> 4s -> ... -> max 30s
+        const delay = reconnectDelayRef.current;
+        reconnectDelayRef.current = Math.min(delay * 2, 30_000);
+        reconnectTimeoutRef.current = setTimeout(connectSSE, delay);
+      };
+    } catch {
+      // Token fetch failed, retry with backoff
+      setConnected(false);
+      const delay = reconnectDelayRef.current;
+      reconnectDelayRef.current = Math.min(delay * 2, 30_000);
+      reconnectTimeoutRef.current = setTimeout(connectSSE, delay);
+    }
   }, [requestId]);
+
+  useEffect(() => {
+    connectSSE();
+    return () => {
+      esRef.current?.close();
+      esRef.current = null;
+      setConnected(false);
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    };
+  }, [connectSSE]);
 
   const sendTyping = useCallback(async () => {
     const now = Date.now();
@@ -212,7 +249,7 @@ export default function RequestChat({ requestId, initialMessages }: RequestChatP
 
   const formatRecordTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
-  const groupedMessages = groupByDate(messages);
+  const groupedMessages = groupByDate(messages, t);
 
   const roleColor = (role: string) =>
     role === "SELLER" ? "bg-violet-500" : role === "SUPERADMIN" ? "bg-red-500" : "bg-indigo-500";
@@ -435,7 +472,7 @@ export default function RequestChat({ requestId, initialMessages }: RequestChatP
   );
 }
 
-function groupByDate(messages: Message[]) {
+function groupByDate(messages: Message[], t: (key: any) => string) {
   const groups: { date: string; label: string; messages: Message[] }[] = [];
   const today = new Date();
   const yesterday = new Date(today);
@@ -444,8 +481,8 @@ function groupByDate(messages: Message[]) {
     const d = new Date(msg.createdAt);
     const dateKey = d.toDateString();
     let label: string;
-    if (dateKey === today.toDateString()) label = "Today";
-    else if (dateKey === yesterday.toDateString()) label = "Yesterday";
+    if (dateKey === today.toDateString()) label = t("chat.today");
+    else if (dateKey === yesterday.toDateString()) label = t("chat.yesterday");
     else label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const existing = groups.find((g) => g.date === dateKey);
     if (existing) existing.messages.push(msg);

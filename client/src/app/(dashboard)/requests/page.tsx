@@ -1,26 +1,56 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { getRequests } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n";
+import { useNotifications } from "@/lib/notification-context";
 import RequestCard from "@/components/request-card";
+import ErrorState from "@/components/error-state";
+import LoadMore from "@/components/load-more";
 import { timeUntilDeadline } from "@/lib/utils";
 
 export default function RequestsPage() {
   const { user } = useAuth();
   const { t } = useI18n();
+  const { deadline } = useNotifications();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(false);
   const [filter, setFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+
+  const loadData = useCallback(async (cursor?: string, append = false) => {
+    try {
+      if (!append) setLoading(true);
+      setError(false);
+      const result = await getRequests({ cursor, search: search || undefined });
+      if (append) {
+        setRequests((prev) => [...prev, ...result.data]);
+      } else {
+        setRequests(result.data);
+      }
+      setNextCursor(result.nextCursor);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [search]);
 
   useEffect(() => {
-    getRequests()
-      .then(setRequests)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    loadData();
+  }, [loadData]);
+
+  const handleLoadMore = () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    loadData(nextCursor, true);
+  };
 
   const filtered =
     filter === "ALL"
@@ -54,7 +84,7 @@ export default function RequestsPage() {
           </h1>
           <div className="flex items-center gap-2 mt-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-slate-400">{timeUntilDeadline(t)}</span>
+            <span className="text-xs text-slate-400">{timeUntilDeadline(t, deadline)}</span>
           </div>
         </div>
         {isBuyer && (
@@ -87,6 +117,17 @@ export default function RequestsPage() {
           </div>
         </div>
       )}
+
+      {/* Search */}
+      <div className="mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("requests.search")}
+          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
 
       {/* Filters */}
       <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
@@ -123,6 +164,8 @@ export default function RequestsPage() {
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : error ? (
+        <ErrorState onRetry={() => loadData()} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 animate-fade-in">
           <div className="w-20 h-20 bg-white/80 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">
@@ -144,11 +187,16 @@ export default function RequestsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 pb-4 sm:grid-cols-2 md:gap-4 xl:grid-cols-3">
-          {filtered.map((r) => (
-            <RequestCard key={r.id} request={r} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-3 pb-4 sm:grid-cols-2 md:gap-4 xl:grid-cols-3">
+            {filtered.map((r) => (
+              <RequestCard key={r.id} request={r} />
+            ))}
+          </div>
+          {nextCursor && filter === "ALL" && (
+            <LoadMore loading={loadingMore} onClick={handleLoadMore} />
+          )}
+        </>
       )}
     </div>
   );

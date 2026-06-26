@@ -9,30 +9,38 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole("SUPERADMIN"));
 
-// Get all users
-router.get("/users", async (_req: AuthRequest, res: Response) => {
+// Get all users (paginated)
+router.get("/users", async (req: AuthRequest, res: Response) => {
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        username: true,
-        profileImage: true,
-        role: true,
-        createdAt: true,
-        _count: {
-          select: {
-            buyerRequests: true,
-            sellerRequests: true,
-            orders: true,
-            sellerOrders: true,
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200);
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          username: true,
+          profileImage: true,
+          role: true,
+          createdAt: true,
+          _count: {
+            select: {
+              buyerRequests: true,
+              sellerRequests: true,
+              orders: true,
+              sellerOrders: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    res.json(users);
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.user.count(),
+    ]);
+    res.json({ users, total });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -81,11 +89,11 @@ router.get("/stats", async (_req: AuthRequest, res: Response) => {
   }
 });
 
-// Audit logs
+// Audit logs (validated pagination)
 router.get("/audit", async (req: AuthRequest, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 100, 1), 500);
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
     const result = await AuditService.getLogs(limit, offset);
     res.json(result);
   } catch (err: any) {

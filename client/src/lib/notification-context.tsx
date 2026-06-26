@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead, getSellerPurchases } from "./api";
+import { getNotificationSummary, markNotificationRead, markAllNotificationsRead, getConfig } from "./api";
 import { useAuth } from "./auth-context";
 
 interface Notification {
@@ -18,6 +18,7 @@ interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
   pendingPurchasesCount: number;
+  deadline: string;
   panelOpen: boolean;
   setPanelOpen: (open: boolean) => void;
   markRead: (id: string) => Promise<void>;
@@ -29,6 +30,7 @@ const NotificationContext = createContext<NotificationContextType>({
   notifications: [],
   unreadCount: 0,
   pendingPurchasesCount: 0,
+  deadline: "2026-07-08T23:59:59.000Z",
   panelOpen: false,
   setPanelOpen: () => {},
   markRead: async () => {},
@@ -38,7 +40,8 @@ const NotificationContext = createContext<NotificationContextType>({
 
 export const useNotifications = () => useContext(NotificationContext);
 
-const POLL_INTERVAL = 10_000;
+const BASE_POLL_INTERVAL = 10_000;
+const MAX_POLL_INTERVAL = 60_000;
 
 let notifAudio: HTMLAudioElement | null = null;
 
@@ -60,40 +63,46 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingPurchasesCount, setPendingPurchasesCount] = useState(0);
+  const [deadline, setDeadline] = useState("2026-07-08T23:59:59.000Z");
   const [panelOpen, setPanelOpen] = useState(false);
   const prevUnreadRef = useRef(0);
   const initializedRef = useRef(false);
+  const failCountRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Fetch config (deadline) once on login
+  useEffect(() => {
+    if (!user) return;
+    getConfig()
+      .then((cfg) => { if (cfg.deadline) setDeadline(cfg.deadline); })
+      .catch(() => {});
+  }, [user]);
 
   const refresh = useCallback(async () => {
     if (!user) return;
     try {
-      const [notifs, { count }] = await Promise.all([
-        getNotifications(),
-        getUnreadCount(),
-      ]);
-      setNotifications(notifs);
-      setUnreadCount(count);
-
-      // Fetch pending purchases count for sellers
-      if (user.role === "SELLER") {
-        try {
-          const purchases = await getSellerPurchases();
-          setPendingPurchasesCount(purchases.filter((p: any) => p.status === "PENDING").length);
-        } catch { /* ignore */ }
-      }
+      // Single request replaces 3 separate calls
+      const summary = await getNotificationSummary();
+      setNotifications(summary.notifications);
+      setUnreadCount(summary.unreadCount);
+      setPendingPurchasesCount(summary.pendingPurchasesCount);
 
       // Play sound only when new unread notifications arrive (not on initial load)
-      if (initializedRef.current && count > prevUnreadRef.current) {
+      if (initializedRef.current && summary.unreadCount > prevUnreadRef.current) {
         playNotificationSound();
       }
-      prevUnreadRef.current = count;
+      prevUnreadRef.current = summary.unreadCount;
       initializedRef.current = true;
+      failCountRef.current = 0; // reset backoff on success
     } catch {
-      // ignore errors silently
+      failCountRef.current++;
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`Notification poll failed (attempt ${failCountRef.current})`);
+      }
     }
   }, [user]);
 
-  // Poll for notifications
+  // Poll with exponential backoff on failure
   useEffect(() => {
     if (!user) {
       setNotifications([]);
@@ -101,12 +110,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setPendingPurchasesCount(0);
       initializedRef.current = false;
       prevUnreadRef.current = 0;
+      failCountRef.current = 0;
       return;
     }
 
-    refresh();
-    const interval = setInterval(refresh, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    const poll = () => {
+      refresh().finally(() => {
+        const backoff = Math.min(
+          BASE_POLL_INTERVAL * Math.pow(2, failCountRef.current),
+          MAX_POLL_INTERVAL
+        );
+        timerRef.current = setTimeout(poll, backoff);
+      });
+    };
+
+    poll();
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [user, refresh]);
 
   const markRead = useCallback(async (id: string) => {
@@ -122,7 +141,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, pendingPurchasesCount, panelOpen, setPanelOpen, markRead, markAllRead, refresh }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, pendingPurchasesCount, deadline, panelOpen, setPanelOpen, markRead, markAllRead, refresh }}>
       {children}
     </NotificationContext.Provider>
   );

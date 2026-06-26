@@ -6,6 +6,7 @@ import { getOrders, getOrderStats, getSellerPurchases, getMyPurchases, confirmPu
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n";
 import { formatPrice, formatDate, resolveImageUrl } from "@/lib/utils";
+import ErrorState from "@/components/error-state";
 
 type Tab = "orders" | "purchases";
 
@@ -17,6 +18,7 @@ export default function OrdersPage() {
   const [stats, setStats] = useState({ total: 0, confirmed: 0, totalRevenue: 0 });
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState("");
 
@@ -26,19 +28,20 @@ export default function OrdersPage() {
 
   const loadData = async () => {
     try {
+      setError(false);
       const [o, s] = await Promise.all([getOrders(), getOrderStats()]);
       setOrders(o);
       setStats(s);
 
       if (isSeller) {
         const p = await getSellerPurchases();
-        setPurchases(p);
+        setPurchases(p.data || p);
       } else if (isBuyer) {
         const p = await getMyPurchases();
-        setPurchases(p);
+        setPurchases(p.data || p);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -70,7 +73,6 @@ export default function OrdersPage() {
     finally { setActionLoading(null); }
   };
 
-  // Auto-switch to purchases tab if there are pending purchases and no orders
   useEffect(() => {
     if (!loading && isSeller && pendingCount > 0 && orders.length === 0) {
       setTab("purchases");
@@ -79,7 +81,6 @@ export default function OrdersPage() {
 
   return (
     <div className="px-4 pt-8 animate-fade-in md:px-6 lg:px-8">
-      {/* Toast */}
       {toast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-xl animate-slide-up">
           {toast}
@@ -137,8 +138,9 @@ export default function OrdersPage() {
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : error ? (
+        <ErrorState onRetry={loadData} />
       ) : tab === "orders" ? (
-        /* --- ORDERS TAB --- */
         orders.length === 0 ? (
           <div className="text-center py-20 animate-fade-in">
             <div className="w-20 h-20 bg-white/80 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">
@@ -203,7 +205,6 @@ export default function OrdersPage() {
           </div>
         )
       ) : (
-        /* --- PURCHASES TAB --- */
         <PurchasesTab
           purchases={purchases}
           isSeller={isSeller || false}
@@ -245,7 +246,6 @@ function PurchasesTab({ purchases, isSeller, actionLoading, onConfirm, onCancel,
 
   return (
     <div className="pb-4 animate-fade-in">
-      {/* Pending section — highlighted */}
       {pending.length > 0 && (
         <>
           <div className="flex items-center gap-2 mb-3">
@@ -256,24 +256,12 @@ function PurchasesTab({ purchases, isSeller, actionLoading, onConfirm, onCancel,
           </div>
           <div className="space-y-3 mb-6">
             {pending.map((p: any, i: number) => (
-              <PurchaseCard
-                key={p.id}
-                purchase={p}
-                isSeller={isSeller}
-                actionLoading={actionLoading}
-                onConfirm={onConfirm}
-                onCancel={onCancel}
-                t={t}
-                user={user}
-                index={i}
-                urgent
-              />
+              <PurchaseCard key={p.id} purchase={p} isSeller={isSeller} actionLoading={actionLoading}
+                onConfirm={onConfirm} onCancel={onCancel} t={t} user={user} index={i} urgent />
             ))}
           </div>
         </>
       )}
-
-      {/* Handled section */}
       {handled.length > 0 && (
         <>
           {pending.length > 0 && (
@@ -283,18 +271,8 @@ function PurchasesTab({ purchases, isSeller, actionLoading, onConfirm, onCancel,
           )}
           <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 xl:grid-cols-3">
             {handled.map((p: any, i: number) => (
-              <PurchaseCard
-                key={p.id}
-                purchase={p}
-                isSeller={isSeller}
-                actionLoading={actionLoading}
-                onConfirm={onConfirm}
-                onCancel={onCancel}
-                t={t}
-                user={user}
-                index={i}
-                urgent={false}
-              />
+              <PurchaseCard key={p.id} purchase={p} isSeller={isSeller} actionLoading={actionLoading}
+                onConfirm={onConfirm} onCancel={onCancel} t={t} user={user} index={i} urgent={false} />
             ))}
           </div>
         </>
@@ -304,15 +282,9 @@ function PurchasesTab({ purchases, isSeller, actionLoading, onConfirm, onCancel,
 }
 
 function PurchaseCard({ purchase: p, isSeller, actionLoading, onConfirm, onCancel, t, user, index, urgent }: {
-  purchase: any;
-  isSeller: boolean;
-  actionLoading: string | null;
-  onConfirm: (id: string) => Promise<void>;
-  onCancel: (id: string) => Promise<void>;
-  t: any;
-  user: any;
-  index: number;
-  urgent: boolean;
+  purchase: any; isSeller: boolean; actionLoading: string | null;
+  onConfirm: (id: string) => Promise<void>; onCancel: (id: string) => Promise<void>;
+  t: any; user: any; index: number; urgent: boolean;
 }) {
   const imgSrc = resolveImageUrl(p.product?.image);
   const statusConfig: Record<string, { bg: string; text: string; border: string; label: string }> = {
@@ -325,14 +297,9 @@ function PurchaseCard({ purchase: p, isSeller, actionLoading, onConfirm, onCance
 
   return (
     <Link href={`/browse/${p.product?.id || p.productId}`}>
-      <div
-        className={`rounded-2xl border p-4 shadow-sm animate-slide-up h-full transition-all active:scale-[0.98] ${
-          urgent
-            ? "bg-amber-50/60 border-amber-200 pulse-glow"
-            : "bg-white/90 backdrop-blur-sm border-white/60"
-        }`}
-        style={{ animationDelay: `${index * 50}ms` }}
-      >
+      <div className={`rounded-2xl border p-4 shadow-sm animate-slide-up h-full transition-all active:scale-[0.98] ${
+        urgent ? "bg-amber-50/60 border-amber-200 pulse-glow" : "bg-white/90 backdrop-blur-sm border-white/60"
+      }`} style={{ animationDelay: `${index * 50}ms` }}>
         <div className="flex items-start gap-3">
           {imgSrc ? (
             <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0 shadow-sm">
@@ -340,43 +307,29 @@ function PurchaseCard({ purchase: p, isSeller, actionLoading, onConfirm, onCance
             </div>
           ) : (
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-lg font-semibold text-indigo-400">
-                {(p.product?.name || "P").charAt(0).toUpperCase()}
-              </span>
+              <span className="text-lg font-semibold text-indigo-400">{(p.product?.name || "P").charAt(0).toUpperCase()}</span>
             </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 mb-1">
-              <h3 className="font-semibold text-slate-900 text-[15px] truncate">
-                {p.product?.name || "Product"}
-              </h3>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${sc.bg} ${sc.text} ${sc.border}`}>
-                {sc.label}
-              </span>
+              <h3 className="font-semibold text-slate-900 text-[15px] truncate">{p.product?.name || "Product"}</h3>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${sc.bg} ${sc.text} ${sc.border}`}>{sc.label}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">
-                {isSeller
-                  ? `${p.buyer?.firstName || "?"} ${p.buyer?.lastName || ""}`
-                  : p.product?.name || ""}
+                {isSeller ? `${p.buyer?.firstName || "?"} ${p.buyer?.lastName || ""}` : p.product?.name || ""}
                 <span className="mx-1 text-slate-200">|</span>
                 {formatDate(p.createdAt, t)}
               </span>
-              <span className="text-base font-extrabold text-indigo-600">
-                {formatPrice(p.product?.price, p.product?.currency)}
-              </span>
+              <span className="text-base font-extrabold text-indigo-600">{formatPrice(p.product?.price, p.product?.currency)}</span>
             </div>
           </div>
         </div>
-
-        {/* Seller action buttons for pending purchases */}
         {isSeller && p.status === "PENDING" && (
           <div className="flex gap-2 mt-3 pt-3 border-t border-amber-100">
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onConfirm(p.id); }}
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onConfirm(p.id); }}
               disabled={actionLoading === p.id}
-              className="flex-1 py-2.5 bg-emerald-500 text-white text-xs font-bold rounded-xl active:scale-[0.98] transition disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
+              className="flex-1 py-2.5 bg-emerald-500 text-white text-xs font-bold rounded-xl active:scale-[0.98] transition disabled:opacity-50 flex items-center justify-center gap-1.5">
               {actionLoading === p.id ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
@@ -388,11 +341,9 @@ function PurchaseCard({ purchase: p, isSeller, actionLoading, onConfirm, onCance
                 </>
               )}
             </button>
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCancel(p.id); }}
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCancel(p.id); }}
               disabled={actionLoading === p.id}
-              className="flex-1 py-2.5 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl active:scale-[0.98] transition border border-rose-100 disabled:opacity-50"
-            >
+              className="flex-1 py-2.5 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl active:scale-[0.98] transition border border-rose-100 disabled:opacity-50">
               {t("products.cancel")}
             </button>
           </div>

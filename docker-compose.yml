@@ -27,6 +27,7 @@ services:
       PORT: "5000"
       UPLOAD_DIR: /app/uploads
       DEADLINE_DATE: "2026-07-08T23:59:59.000Z"
+      CLIENT_URL: "https://khalildeals.abbtn.com"
     volumes:
       - uploads:/app/uploads
     expose:

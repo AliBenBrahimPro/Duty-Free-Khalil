@@ -10,7 +10,7 @@ export const authenticate = (
   res: Response,
   next: NextFunction
 ): void => {
-  const token = req.headers.authorization?.split(" ")[1] || (req.query.token as string);
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     res.status(401).json({ error: "Authentication required" });

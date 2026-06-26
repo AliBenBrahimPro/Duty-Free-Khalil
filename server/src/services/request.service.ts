@@ -128,7 +128,6 @@ export class RequestService {
       throw new Error("Access denied");
     }
 
-    // Delete related records
     await prisma.requestComment.deleteMany({ where: { requestId } });
     await prisma.order.deleteMany({ where: { requestId } });
     await prisma.request.delete({ where: { id: requestId } });
@@ -136,16 +135,24 @@ export class RequestService {
     await AuditService.log({ action: "REQUEST_DELETED", entity: "Request", entityId: requestId, userId, details: request.productName || "" });
   }
 
-  static async getUserRequests(userId: string, role: string) {
-    // SUPERADMIN sees all requests
-    const where =
+  static async getUserRequests(userId: string, role: string, opts: { cursor?: string; limit?: number; search?: string } = {}) {
+    const { cursor, limit = 20, search } = opts;
+    const where: any =
       role === "SUPERADMIN"
         ? {}
         : role === "SELLER"
           ? { sellerId: userId }
           : { buyerId: userId };
 
-    return prisma.request.findMany({
+    if (search) {
+      where.productName = { contains: search, mode: "insensitive" };
+    }
+
+    if (cursor) {
+      where.createdAt = { lt: (await prisma.request.findUnique({ where: { id: cursor } }))?.createdAt };
+    }
+
+    const requests = await prisma.request.findMany({
       where,
       include: {
         buyer: { select: userSelect },
@@ -153,7 +160,16 @@ export class RequestService {
         order: true,
       },
       orderBy: { createdAt: "desc" },
+      take: limit + 1,
     });
+
+    const hasMore = requests.length > limit;
+    if (hasMore) requests.pop();
+
+    return {
+      data: requests,
+      nextCursor: hasMore ? requests[requests.length - 1]?.id : null,
+    };
   }
 
   static async getRequest(requestId: string, userId: string, role: string = "BUYER") {
@@ -167,7 +183,6 @@ export class RequestService {
       },
     });
     if (!request) throw new Error("Request not found");
-    // SUPERADMIN can see any request
     if (role !== "SUPERADMIN" && request.buyerId !== userId && request.sellerId !== userId) {
       throw new Error("Access denied");
     }
@@ -208,12 +223,24 @@ export class RequestService {
 
   static async expireOverdueRequests() {
     const now = new Date();
-    return prisma.request.updateMany({
+    // First find the IDs that will be expired
+    const toExpire = await prisma.request.findMany({
       where: {
         deadline: { lt: now },
         status: { in: ["PENDING_PRICE", "PRICED"] },
       },
-      data: { status: "EXPIRED" },
+      select: { id: true },
     });
+
+    const ids = toExpire.map(r => r.id);
+
+    if (ids.length > 0) {
+      await prisma.request.updateMany({
+        where: { id: { in: ids } },
+        data: { status: "EXPIRED" },
+      });
+    }
+
+    return { count: ids.length, ids };
   }
 }

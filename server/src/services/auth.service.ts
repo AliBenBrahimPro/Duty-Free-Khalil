@@ -1,9 +1,9 @@
 import prisma from "../config/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { WEAK_PINS } from "../middleware/validate.js";
 
 export class AuthService {
-  // Register is buyer-only
   static async register(data: {
     firstName: string;
     lastName: string;
@@ -15,7 +15,11 @@ export class AuthService {
       where: { username: data.username },
     });
     if (existing) {
-      throw new Error("Username already taken");
+      throw new Error("USERNAME_TAKEN");
+    }
+
+    if (WEAK_PINS.has(data.pin)) {
+      throw new Error("PIN_TOO_WEAK");
     }
 
     const hashedPin = await bcrypt.hash(data.pin, 10);
@@ -49,16 +53,15 @@ export class AuthService {
     };
   }
 
-  // Login works for both buyer and seller
   static async login(username: string, pin: string) {
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
-      throw new Error("Invalid credentials");
+      throw new Error("INVALID_CREDENTIALS");
     }
 
     const valid = await bcrypt.compare(pin, user.pin);
     if (!valid) {
-      throw new Error("Invalid credentials");
+      throw new Error("INVALID_CREDENTIALS");
     }
 
     const token = jwt.sign(
@@ -126,7 +129,11 @@ export class AuthService {
     if (!user) throw new Error("User not found");
 
     const valid = await bcrypt.compare(currentPin, user.pin);
-    if (!valid) throw new Error("Current PIN is incorrect");
+    if (!valid) throw new Error("INVALID_CURRENT_PIN");
+
+    if (WEAK_PINS.has(newPin)) {
+      throw new Error("PIN_TOO_WEAK");
+    }
 
     const hashedPin = await bcrypt.hash(newPin, 10);
     await prisma.user.update({

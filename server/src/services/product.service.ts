@@ -81,7 +81,6 @@ export class ProductService {
     if (!product) throw new Error("Product not found");
     if (product.sellerId !== sellerId) throw new Error("Not your product");
 
-    // Delete related purchases first
     await prisma.purchase.deleteMany({ where: { productId } });
     await prisma.product.delete({ where: { id: productId } });
 
@@ -95,15 +94,34 @@ export class ProductService {
     });
   }
 
-  static async getProducts() {
-    return prisma.product.findMany({
-      where: { isActive: true },
+  static async getProducts(opts: { cursor?: string; limit?: number } = {}) {
+    const { cursor, limit = 20 } = opts;
+    const where: any = { isActive: true };
+
+    if (cursor) {
+      const ref = await prisma.product.findUnique({ where: { id: cursor } });
+      if (ref) {
+        where.createdAt = { lt: ref.createdAt };
+      }
+    }
+
+    const products = await prisma.product.findMany({
+      where,
       include: {
         seller: { select: sellerSelect },
         _count: { select: { purchases: { where: { status: "CONFIRMED" } } } },
       },
       orderBy: { createdAt: "desc" },
+      take: limit + 1,
     });
+
+    const hasMore = products.length > limit;
+    if (hasMore) products.pop();
+
+    return {
+      data: products,
+      nextCursor: hasMore ? products[products.length - 1]?.id : null,
+    };
   }
 
   static async getSellerProducts(sellerId: string) {
@@ -165,16 +183,23 @@ export class ProductService {
     if (purchase.sellerId !== sellerId) throw new Error("Not your purchase");
     if (purchase.status !== "PENDING") throw new Error("Purchase already handled");
 
-    const remaining = purchase.product.stock - purchase.product.sold;
-    if (remaining <= 0) {
-      await prisma.purchase.update({ where: { id: purchaseId }, data: { status: "SOLD_OUT" } });
-      throw new Error("Product is sold out");
-    }
+    // Atomic stock check using interactive transaction to prevent race condition
+    const updatedPurchase = await prisma.$transaction(async (tx) => {
+      // Atomically decrement stock only if remaining > 0
+      const result = await tx.$executeRaw`
+        UPDATE "Product"
+        SET "sold" = "sold" + 1
+        WHERE "id" = ${purchase.productId}
+        AND "sold" < "stock"
+      `;
 
-    const [updatedPurchase] = await prisma.$transaction([
-      prisma.purchase.update({ where: { id: purchaseId }, data: { status: "CONFIRMED" } }),
-      prisma.product.update({ where: { id: purchase.productId }, data: { sold: { increment: 1 } } }),
-    ]);
+      if (result === 0) {
+        await tx.purchase.update({ where: { id: purchaseId }, data: { status: "SOLD_OUT" } });
+        throw new Error("Product is sold out");
+      }
+
+      return tx.purchase.update({ where: { id: purchaseId }, data: { status: "CONFIRMED" } });
+    });
 
     await AuditService.log({
       action: "PURCHASE_CONFIRMED",
@@ -234,29 +259,63 @@ export class ProductService {
     return purchases.map(p => ({ ...p, buyer: buyerMap[p.buyerId] || null }));
   }
 
-  static async getBuyerPurchases(buyerId: string) {
-    return prisma.purchase.findMany({
-      where: { buyerId },
+  static async getBuyerPurchases(buyerId: string, opts: { cursor?: string; limit?: number } = {}) {
+    const { cursor, limit = 20 } = opts;
+    const where: any = { buyerId };
+
+    if (cursor) {
+      const ref = await prisma.purchase.findUnique({ where: { id: cursor } });
+      if (ref) where.createdAt = { lt: ref.createdAt };
+    }
+
+    const purchases = await prisma.purchase.findMany({
+      where,
       include: { product: { include: { seller: { select: sellerSelect } } } },
       orderBy: { createdAt: "desc" },
+      take: limit + 1,
     });
+
+    const hasMore = purchases.length > limit;
+    if (hasMore) purchases.pop();
+
+    return {
+      data: purchases,
+      nextCursor: hasMore ? purchases[purchases.length - 1]?.id : null,
+    };
   }
 
-  static async getSellerAllPurchases(sellerId: string) {
+  static async getSellerAllPurchases(sellerId: string, opts: { cursor?: string; limit?: number } = {}) {
+    const { cursor, limit = 20 } = opts;
+    const where: any = { sellerId };
+
+    if (cursor) {
+      const ref = await prisma.purchase.findUnique({ where: { id: cursor } });
+      if (ref) where.createdAt = { lt: ref.createdAt };
+    }
+
     const purchases = await prisma.purchase.findMany({
-      where: { sellerId },
+      where,
       include: {
         product: { select: { id: true, name: true, image: true, price: true, currency: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: limit + 1,
     });
+
+    const hasMore = purchases.length > limit;
+    if (hasMore) purchases.pop();
+
     const buyerIds = [...new Set(purchases.map(p => p.buyerId))];
     const buyers = await prisma.user.findMany({
       where: { id: { in: buyerIds } },
       select: sellerSelect,
     });
     const buyerMap = Object.fromEntries(buyers.map(b => [b.id, b]));
-    return purchases.map(p => ({ ...p, buyer: buyerMap[p.buyerId] || null }));
+
+    return {
+      data: purchases.map(p => ({ ...p, buyer: buyerMap[p.buyerId] || null })),
+      nextCursor: hasMore ? purchases[purchases.length - 1]?.id : null,
+    };
   }
 
   static async addComment(productId: string, userId: string, userName: string, userRole: string, text: string) {
