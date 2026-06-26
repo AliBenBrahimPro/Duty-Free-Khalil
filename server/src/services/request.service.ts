@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js";
 import { AuditService } from "./audit.service.js";
+import { NotificationService } from "./notification.service.js";
 
 const userSelect = { id: true, firstName: true, lastName: true, username: true, profileImage: true };
 
@@ -18,7 +19,7 @@ export class RequestService {
       throw new Error("Invalid seller");
     }
 
-    return prisma.request.create({
+    const created = await prisma.request.create({
       data: {
         productName: data.productName,
         productImage: data.productImage,
@@ -32,6 +33,9 @@ export class RequestService {
         seller: { select: userSelect },
       },
     });
+
+    NotificationService.onRequestCreated(created).catch(() => {});
+    return created;
   }
 
   static async setPriceValue(requestId: string, userId: string, role: string, price: number) {
@@ -51,6 +55,7 @@ export class RequestService {
     });
 
     await AuditService.log({ action: "REQUEST_PRICED", entity: "Request", entityId: requestId, userId, details: `${updated.productName} — ${price} DT` });
+    NotificationService.onRequestPriced(updated).catch(() => {});
     return updated;
   }
 
@@ -67,6 +72,7 @@ export class RequestService {
     });
 
     await AuditService.log({ action: "REQUEST_UNAVAILABLE", entity: "Request", entityId: requestId, userId, details: updated.productName || "" });
+    NotificationService.onRequestUnavailable(updated).catch(() => {});
     return updated;
   }
 
@@ -94,6 +100,7 @@ export class RequestService {
     ]);
 
     await AuditService.log({ action: "REQUEST_CONFIRMED", entity: "Request", entityId: requestId, userId, details: `${request.productName} — ${request.price} DT` });
+    NotificationService.onRequestAccepted(request).catch(() => {});
     return { request: updatedRequest, order };
   }
 
@@ -110,6 +117,7 @@ export class RequestService {
     });
 
     await AuditService.log({ action: "REQUEST_REJECTED", entity: "Request", entityId: requestId, userId, details: updated.productName || "" });
+    NotificationService.onRequestRejected(updated).catch(() => {});
     return updated;
   }
 
@@ -120,7 +128,8 @@ export class RequestService {
       throw new Error("Access denied");
     }
 
-    // Delete related order if exists
+    // Delete related records
+    await prisma.requestComment.deleteMany({ where: { requestId } });
     await prisma.order.deleteMany({ where: { requestId } });
     await prisma.request.delete({ where: { id: requestId } });
 
@@ -154,6 +163,7 @@ export class RequestService {
         buyer: { select: userSelect },
         seller: { select: userSelect },
         order: true,
+        comments: { orderBy: { createdAt: "asc" } },
       },
     });
     if (!request) throw new Error("Request not found");
@@ -168,6 +178,31 @@ export class RequestService {
     return prisma.user.findMany({
       where: { role: "SELLER" },
       select: userSelect,
+    });
+  }
+
+  static async addComment(requestId: string, userId: string, userName: string, userRole: string, text: string, media?: { type: string; image?: string; audio?: string }) {
+    const request = await prisma.request.findUnique({ where: { id: requestId } });
+    if (!request) throw new Error("Request not found");
+
+    const comment = await prisma.requestComment.create({
+      data: {
+        text,
+        type: media?.type || "text",
+        image: media?.image,
+        audio: media?.audio,
+        requestId, userId, userName, userRole,
+      },
+    });
+
+    NotificationService.onRequestComment(requestId, request, userId, userName).catch(() => {});
+    return comment;
+  }
+
+  static async getComments(requestId: string) {
+    return prisma.requestComment.findMany({
+      where: { requestId },
+      orderBy: { createdAt: "asc" },
     });
   }
 

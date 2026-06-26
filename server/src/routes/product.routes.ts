@@ -38,6 +38,15 @@ router.get("/my-purchases", authenticate, async (req: AuthRequest, res: Response
   }
 });
 
+// Get all purchase requests for seller (across all products)
+router.get("/seller-purchases", authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    res.json(await ProductService.getSellerAllPurchases(req.user!.id));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get single product
 router.get("/:id", authenticate, async (req: AuthRequest, res: Response) => {
   try {

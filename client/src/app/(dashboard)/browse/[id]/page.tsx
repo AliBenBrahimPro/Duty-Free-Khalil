@@ -138,7 +138,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const isLimited = remaining > 0 && remaining <= 3;
 
   return (
-    <div className="px-4 pt-6 pb-8 animate-fade-in md:px-6 lg:px-8 lg:max-w-3xl">
+    <div className="px-4 pt-6 pb-8 animate-fade-in md:px-6 lg:px-8">
       {/* Toast */}
       {toast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-xl animate-slide-up">
@@ -194,10 +194,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
       {error && <div className="bg-rose-50 text-rose-600 text-sm px-4 py-3 rounded-xl mb-4 border border-rose-100 animate-shake">{error}</div>}
 
+      {/* Desktop: two-column / Mobile: stacked */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-6 xl:gap-8">
+      {/* Left column */}
+      <div>
       {/* Product Card */}
       <div className="bg-white/90 backdrop-blur-sm rounded-3xl border border-white/60 overflow-hidden shadow-sm mb-4">
         {imgSrc && (
-          <div className="w-full aspect-[4/3] md:aspect-[16/9] bg-slate-100 relative">
+          <div className="w-full aspect-[4/3] md:aspect-[16/9] lg:aspect-[4/3] bg-slate-100 relative">
             <img src={imgSrc} alt={product.name} className="w-full h-full object-cover" />
             {soldOut && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[2px]">
@@ -278,7 +282,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {isBuyer && soldOut && <div className="w-full py-4 bg-slate-100 text-slate-400 font-bold rounded-2xl text-center text-[15px] mb-4">{t("products.soldOut")}</div>}
+      </div>
 
+      {/* Right column */}
+      <div className="lg:sticky lg:top-4 lg:self-start">
       {/* Seller: Purchase Requests */}
       {isOwner && (
         <div className="mt-2">
@@ -392,6 +399,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             })}
           </div>
         )}
+      </div>
+      </div>
       </div>
     </div>
   );

@@ -144,7 +144,7 @@ export default function RequestsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 pb-4 md:gap-4 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 pb-4 sm:grid-cols-2 md:gap-4 xl:grid-cols-3">
           {filtered.map((r) => (
             <RequestCard key={r.id} request={r} />
           ))}

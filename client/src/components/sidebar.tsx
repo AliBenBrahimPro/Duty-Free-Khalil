@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n";
 import { resolveImageUrl } from "@/lib/utils";
+import { useNotifications } from "@/lib/notification-context";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { t, locale, setLocale } = useI18n();
+  const { unreadCount, pendingPurchasesCount, setPanelOpen } = useNotifications();
 
   if (!user) return null;
 
@@ -42,6 +44,7 @@ export default function Sidebar() {
       <nav className="flex-1 px-3 space-y-1">
         {links.map((link) => {
           const active = pathname.startsWith(link.href);
+          const showBadge = link.href === "/orders" && pendingPurchasesCount > 0;
           return (
             <Link
               key={link.href}
@@ -52,13 +55,44 @@ export default function Sidebar() {
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
               }`}
             >
-              <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={link.iconPath} />
-              </svg>
+              <div className="relative">
+                <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={link.iconPath} />
+                </svg>
+                {showBadge && (
+                  <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] bg-rose-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center px-0.5">
+                    {pendingPurchasesCount}
+                  </span>
+                )}
+              </div>
               {link.label}
+              {showBadge && (
+                <span className="ml-auto bg-rose-100 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {pendingPurchasesCount} {t("purchases.statusPending")}
+                </span>
+              )}
             </Link>
           );
         })}
+        <button
+          onClick={() => setPanelOpen(true)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+        >
+          <div className="relative">
+            <svg className={`w-5 h-5 ${unreadCount > 0 ? "text-indigo-600" : ""}`} fill={unreadCount > 0 ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={unreadCount > 0 ? 0 : 1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+            </svg>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </div>
+          <span>{t("nav.notif")}</span>
+          {unreadCount > 0 && (
+            <span className="ml-auto bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>
+          )}
+        </button>
       </nav>
 
       {/* Language switcher */}

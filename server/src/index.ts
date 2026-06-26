@@ -7,6 +7,7 @@ import requestRoutes from "./routes/request.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import productRoutes from "./routes/product.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 import { RequestService } from "./services/request.service.js";
 
 const app = express();
@@ -22,6 +23,7 @@ app.use("/api/requests", requestRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {

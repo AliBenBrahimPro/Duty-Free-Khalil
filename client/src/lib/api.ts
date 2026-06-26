@@ -80,6 +80,19 @@ export const rejectPrice = (id: string) =>
 export const deleteRequest = (id: string) =>
   request(`/requests/${id}`, { method: "DELETE" });
 
+export const getRequestComments = (requestId: string) =>
+  request(`/requests/${requestId}/comments`);
+export const addRequestComment = (requestId: string, text: string, file?: Blob, type: string = "text") => {
+  const formData = new FormData();
+  formData.append("text", text);
+  formData.append("type", type);
+  if (file) formData.append("file", file);
+  return request(`/requests/${requestId}/comments`, {
+    method: "POST",
+    body: formData,
+  });
+};
+
 // Orders
 export const getOrders = () => request("/orders");
 
@@ -102,6 +115,7 @@ export const confirmPurchase = (id: string) =>
 export const cancelPurchase = (id: string) =>
   request(`/products/purchases/${id}/cancel`, { method: "PATCH" });
 export const getMyPurchases = () => request("/products/my-purchases");
+export const getSellerPurchases = () => request("/products/seller-purchases");
 export const getComments = (productId: string) =>
   request(`/products/${productId}/comments`);
 export const addComment = (productId: string, text: string) =>
@@ -113,6 +127,14 @@ export const addComment = (productId: string, text: string) =>
 // Admin
 export const deleteProduct = (id: string) =>
   request(`/products/${id}`, { method: "DELETE" });
+
+// Notifications
+export const getNotifications = () => request("/notifications");
+export const getUnreadCount = () => request("/notifications/unread-count");
+export const markNotificationRead = (id: string) =>
+  request(`/notifications/${id}/read`, { method: "PATCH" });
+export const markAllNotificationsRead = () =>
+  request("/notifications/read-all", { method: "PATCH" });
 
 // Admin
 export const getAdminUsers = () => request("/admin/users");

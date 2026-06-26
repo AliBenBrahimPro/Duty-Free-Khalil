@@ -83,7 +83,7 @@ export default function NewRequestPage() {
   };
 
   return (
-    <div className="px-4 pt-6 animate-fade-in md:px-6 lg:px-8 lg:max-w-3xl">
+    <div className="px-4 pt-6 animate-fade-in md:px-6 lg:px-8 lg:max-w-3xl overflow-x-hidden">
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => router.back()}

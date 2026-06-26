@@ -140,7 +140,7 @@ export default function ProfilePage() {
     const activePinSetter = pinStep === "current" ? setCurrentPin : pinStep === "new" ? setNewPin : setConfirmNewPin;
 
     return (
-      <div className="px-4 pt-8 animate-fade-in md:px-6 lg:px-8 lg:max-w-3xl">
+      <div className="px-4 pt-8 animate-fade-in md:px-6 lg:px-8 lg:max-w-xl lg:mx-auto">
         {/* Step indicator */}
         <div className="flex justify-center gap-2 mb-6">
           <div className={`w-8 h-1 rounded-full ${pinStep === "current" ? "bg-indigo-500" : "bg-slate-200"}`} />
@@ -182,8 +182,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="px-4 pt-8 animate-fade-in md:px-6 lg:px-8 lg:max-w-3xl">
-      <h1 className="text-2xl font-extrabold text-slate-900 mb-6">{t("profile.title")}</h1>
+    <div className="px-4 pt-8 animate-fade-in md:px-6 lg:px-8">
+      <h1 className="text-2xl font-extrabold text-slate-900 mb-6 lg:text-3xl">{t("profile.title")}</h1>
 
       {/* Success messages */}
       {(editMsg || pinMsg) && (
@@ -192,9 +192,13 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Desktop: two-column / Mobile: stacked */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-6 xl:gap-8">
+      {/* Left column: Profile card */}
+      <div>
       {/* Profile Card */}
       <div className="bg-white/90 backdrop-blur-sm rounded-3xl border border-white/60 overflow-hidden shadow-sm mb-4">
-        <div className="h-20 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 relative">
+        <div className="h-24 lg:h-32 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 relative">
           <div className="absolute -bottom-10 left-6">
             {editing ? (
               <label className="cursor-pointer">
@@ -289,6 +293,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      </div>
+
+      {/* Right column: Settings */}
+      <div>
       {/* Info Cards */}
       <div className="space-y-3 mb-4">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 p-4 flex items-center justify-between shadow-sm">
@@ -370,6 +378,8 @@ export default function ProfilePage() {
       >
         {t("profile.signOut")}
       </button>
+      </div>
+      </div>
     </div>
   );
 }

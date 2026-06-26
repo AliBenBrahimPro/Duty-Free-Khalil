@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import BottomNav from "@/components/bottom-nav";
 import Sidebar from "@/components/sidebar";
+import NotificationPanel from "@/components/notification-panel";
 import { useI18n } from "@/lib/i18n";
 
 export default function DashboardLayout({
@@ -38,10 +39,11 @@ export default function DashboardLayout({
   return (
     <div className="flex-1 flex">
       <Sidebar />
-      <div className="flex-1 flex flex-col pb-20 lg:pb-0 min-h-screen">
-        <div className="flex-1 w-full">{children}</div>
+      <div className="flex-1 flex flex-col pb-20 lg:pb-0 min-h-screen overflow-x-hidden">
+        <div className="flex-1 w-full max-w-full">{children}</div>
       </div>
       <BottomNav />
+      <NotificationPanel />
     </div>
   );
 }

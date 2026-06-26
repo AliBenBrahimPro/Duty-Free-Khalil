@@ -6,6 +6,7 @@ import { getRequest, setPrice, markUnavailable, acceptPrice, rejectPrice, delete
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n";
 import StatusBadge from "@/components/status-badge";
+import RequestChat from "@/components/request-chat";
 import { formatPrice, formatFullDate, timeUntilDeadline, resolveImageUrl } from "@/lib/utils";
 
 export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -65,7 +66,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
   const imgSrc = resolveImageUrl(request.productImage);
 
   return (
-    <div className="px-4 pt-6 pb-8 animate-fade-in md:px-6 lg:px-8 lg:max-w-3xl">
+    <div className="px-4 pt-6 pb-8 animate-fade-in md:px-6 lg:px-8 overflow-x-hidden">
       {/* Toast */}
       {toast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-xl animate-slide-up">{toast}</div>
@@ -99,7 +100,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-slate-900 flex-1 truncate">{t("detail.title")}</h1>
+        <h1 className="text-lg font-bold text-slate-900 flex-1 truncate lg:text-xl">{t("detail.title")}</h1>
         <StatusBadge status={request.status} />
         {canDelete && (
           <button onClick={() => setShowDelete(true)} className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center active:scale-95 transition">
@@ -112,128 +113,144 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
 
       {error && <div className="bg-rose-50 text-rose-600 text-sm px-4 py-3 rounded-xl mb-4 border border-rose-100 animate-shake">{error}</div>}
 
-      {/* Product Card */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-3xl overflow-hidden shadow-sm border border-white/60 mb-4">
-        {imgSrc && (
-          <div className="w-full aspect-[4/3] md:aspect-[16/9] bg-slate-100 relative">
-            <img src={imgSrc} alt={request.productName || "Product"} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-          </div>
-        )}
-        <div className="p-5">
-          <h2 className="text-xl font-bold text-slate-900">{request.productName || "Product Image"}</h2>
-          {request.description && <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">{request.description}</p>}
-
-          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-50">
-            <div className="flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-slate-300 font-semibold">{t("detail.from")}</p>
-              <p className="text-sm font-semibold text-slate-700 mt-0.5">{request.buyer.firstName} {request.buyer.lastName}</p>
-            </div>
-            <div className="w-px h-8 bg-slate-100" />
-            <div className="flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-slate-300 font-semibold">{t("detail.to")}</p>
-              <p className="text-sm font-semibold text-slate-700 mt-0.5">{request.seller.firstName}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
-            <span className="text-xs text-slate-300">{formatFullDate(request.createdAt)}</span>
-            <span className="text-xs text-amber-500 font-semibold bg-amber-50 px-2 py-0.5 rounded-lg">{timeUntilDeadline(t)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Price Display */}
-      {request.price && (
-        <div className="bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 rounded-2xl p-5 mb-4 text-white shadow-lg shadow-indigo-200/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-indigo-100 font-medium">{t("detail.price")}</p>
-              <p className="text-4xl font-extrabold tracking-tight mt-1">{formatPrice(request.price, request.currency)}</p>
-            </div>
-            <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Order Confirmed */}
-      {request.order && (
-        <div className="bg-emerald-50 rounded-2xl p-5 mb-4 border border-emerald-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="font-bold text-emerald-800">{t("detail.purchaseConfirmed")}</p>
-              <p className="text-sm text-emerald-600 mt-0.5">{formatFullDate(request.order.createdAt)}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SELLER / ADMIN ACTIONS */}
-      {isSeller && request.status === "PENDING_PRICE" && (
-        <div className="space-y-3 animate-slide-up">
-          {showPriceInput ? (
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 p-5 shadow-sm">
-              <label className="block text-sm font-semibold text-slate-700 mb-3">{t("detail.enterPrice")}</label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-semibold">DT</span>
-                  <input type="number" value={priceInput} onChange={(e) => setPriceInput(e.target.value)} placeholder="0" min="1" autoFocus
-                    className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-lg font-bold text-slate-900 placeholder:text-slate-200" />
-                </div>
-                <button onClick={() => handleAction(() => setPrice(id, parseFloat(priceInput)))} disabled={actionLoading || !priceInput}
-                  className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl disabled:opacity-50 active:scale-95 transition-all shadow-md">
-                  {actionLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : t("detail.send")}
-                </button>
+      {/* Desktop: two-column layout / Mobile: stacked */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-6 xl:gap-8">
+        {/* Left column: Product info + actions */}
+        <div>
+          {/* Product Card */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-3xl overflow-hidden shadow-sm border border-white/60 mb-4">
+            {imgSrc && (
+              <div className="w-full aspect-[4/3] md:aspect-[16/9] lg:aspect-[4/3] bg-slate-100 relative">
+                <img src={imgSrc} alt={request.productName || "Product"} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </div>
-              <button onClick={() => setShowPriceInput(false)} className="text-sm text-slate-400 mt-3 font-medium">{t("detail.cancel")}</button>
+            )}
+            <div className="p-5 lg:p-6">
+              <h2 className="text-xl font-bold text-slate-900 lg:text-2xl">{request.productName || "Product Image"}</h2>
+              {request.description && <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">{request.description}</p>}
+
+              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-50">
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-300 font-semibold">{t("detail.from")}</p>
+                  <p className="text-sm font-semibold text-slate-700 mt-0.5">{request.buyer.firstName} {request.buyer.lastName}</p>
+                </div>
+                <div className="w-px h-8 bg-slate-100" />
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-300 font-semibold">{t("detail.to")}</p>
+                  <p className="text-sm font-semibold text-slate-700 mt-0.5">{request.seller.firstName}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
+                <span className="text-xs text-slate-300">{formatFullDate(request.createdAt)}</span>
+                <span className="text-xs text-amber-500 font-semibold bg-amber-50 px-2 py-0.5 rounded-lg">{timeUntilDeadline(t)}</span>
+              </div>
             </div>
-          ) : (
-            <>
-              <button onClick={() => setShowPriceInput(true)}
-                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-2xl active:scale-[0.98] transition-all shadow-lg shadow-indigo-200/30 text-[15px]">
-                {t("detail.givePrice")}
+          </div>
+
+          {/* Price Display */}
+          {request.price && (
+            <div className="bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 rounded-2xl p-5 lg:p-6 mb-4 text-white shadow-lg shadow-indigo-200/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-indigo-100 font-medium">{t("detail.price")}</p>
+                  <p className="text-4xl font-extrabold tracking-tight mt-1">{formatPrice(request.price, request.currency)}</p>
+                </div>
+                <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Order Confirmed */}
+          {request.order && (
+            <div className="bg-emerald-50 rounded-2xl p-5 mb-4 border border-emerald-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-bold text-emerald-800">{t("detail.purchaseConfirmed")}</p>
+                  <p className="text-sm text-emerald-600 mt-0.5">{formatFullDate(request.order.createdAt)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SELLER / ADMIN ACTIONS */}
+          {isSeller && request.status === "PENDING_PRICE" && (
+            <div className="space-y-3 animate-slide-up">
+              {showPriceInput ? (
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 p-5 shadow-sm">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">{t("detail.enterPrice")}</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-semibold">DT</span>
+                      <input type="number" value={priceInput} onChange={(e) => setPriceInput(e.target.value)} placeholder="0" min="1" autoFocus
+                        className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-lg font-bold text-slate-900 placeholder:text-slate-200" />
+                    </div>
+                    <button onClick={() => handleAction(() => setPrice(id, parseFloat(priceInput)))} disabled={actionLoading || !priceInput}
+                      className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl disabled:opacity-50 active:scale-95 transition-all shadow-md">
+                      {actionLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : t("detail.send")}
+                    </button>
+                  </div>
+                  <button onClick={() => setShowPriceInput(false)} className="text-sm text-slate-400 mt-3 font-medium">{t("detail.cancel")}</button>
+                </div>
+              ) : (
+                <>
+                  <button onClick={() => setShowPriceInput(true)}
+                    className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-2xl active:scale-[0.98] transition-all shadow-lg shadow-indigo-200/30 text-[15px]">
+                    {t("detail.givePrice")}
+                  </button>
+                  <button onClick={() => handleAction(() => markUnavailable(id))} disabled={actionLoading}
+                    className="w-full py-4 bg-white/80 border border-slate-200 text-slate-600 font-semibold rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50">
+                    {actionLoading ? "..." : t("detail.notAvailable")}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* BUYER / ADMIN ACTIONS */}
+          {isBuyer && request.status === "PRICED" && (
+            <div className="space-y-3 animate-slide-up">
+              <button onClick={() => handleAction(() => acceptPrice(id))} disabled={actionLoading}
+                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-emerald-200/30 text-[15px] flex items-center justify-center gap-2">
+                {actionLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (
+                  <><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>{t("detail.acceptBuy")}</>
+                )}
               </button>
-              <button onClick={() => handleAction(() => markUnavailable(id))} disabled={actionLoading}
-                className="w-full py-4 bg-white/80 border border-slate-200 text-slate-600 font-semibold rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50">
-                {actionLoading ? "..." : t("detail.notAvailable")}
+              <button onClick={() => handleAction(() => rejectPrice(id))} disabled={actionLoading}
+                className="w-full py-4 bg-rose-50 text-rose-600 font-semibold rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50 border border-rose-100">
+                {t("detail.rejectPrice")}
               </button>
-            </>
+            </div>
+          )}
+
+          {/* Admin badge */}
+          {isAdmin && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-center">
+              <span className="text-xs font-bold text-red-500 uppercase tracking-wider">SUPERADMIN VIEW</span>
+            </div>
           )}
         </div>
-      )}
 
-      {/* BUYER / ADMIN ACTIONS */}
-      {isBuyer && request.status === "PRICED" && (
-        <div className="space-y-3 animate-slide-up">
-          <button onClick={() => handleAction(() => acceptPrice(id))} disabled={actionLoading}
-            className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-emerald-200/30 text-[15px] flex items-center justify-center gap-2">
-            {actionLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (
-              <><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>{t("detail.acceptBuy")}</>
-            )}
-          </button>
-          <button onClick={() => handleAction(() => rejectPrice(id))} disabled={actionLoading}
-            className="w-full py-4 bg-rose-50 text-rose-600 font-semibold rounded-2xl active:scale-[0.98] transition-all disabled:opacity-50 border border-rose-100">
-            {t("detail.rejectPrice")}
-          </button>
+        {/* Right column: Chat (sticks on desktop) */}
+        <div className="lg:sticky lg:top-4 lg:self-start">
+          <RequestChat
+            requestId={id}
+            buyerId={request.buyerId}
+            sellerId={request.sellerId}
+            initialMessages={request.comments || []}
+          />
         </div>
-      )}
-
-      {/* Admin badge */}
-      {isAdmin && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-center">
-          <span className="text-xs font-bold text-red-500 uppercase tracking-wider">SUPERADMIN VIEW</span>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

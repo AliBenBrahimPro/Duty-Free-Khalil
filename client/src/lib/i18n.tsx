@@ -189,6 +189,10 @@ const translations = {
     "products.noComments": "No comments yet",
     "products.addComment": "Add a comment...",
     "products.sendComment": "Send",
+    "requests.comments": "Comments",
+    "requests.noComments": "No comments yet",
+    "requests.addComment": "Write a message...",
+    "requests.sendComment": "Send",
     "products.delete": "Delete Product",
     "products.deleteConfirm": "Are you sure you want to delete this product?",
     "products.deleted": "Product deleted",
@@ -200,6 +204,37 @@ const translations = {
     "audit.action": "Action",
     "audit.user": "User",
     "audit.details": "Details",
+
+    // Chat
+    "chat.title": "Chat",
+    "chat.live": "Live",
+    "chat.connecting": "Connecting...",
+    "chat.empty": "No messages yet",
+    "chat.emptyDesc": "Start the conversation",
+    "chat.placeholder": "Type a message...",
+    "chat.sending": "sending...",
+    "chat.holdToRecord": "Hold to record",
+    "chat.recording": "Recording...",
+    "chat.voiceMessage": "Voice message",
+
+    // Purchases
+    "purchases.title": "Purchase Requests",
+    "purchases.myPurchases": "My Purchases",
+    "purchases.noPurchases": "No purchase requests",
+    "purchases.pending": "Pending",
+    "purchases.history": "History",
+    "purchases.confirmed": "Purchase confirmed!",
+    "purchases.cancelled": "Purchase cancelled",
+    "purchases.statusPending": "Pending",
+    "purchases.statusConfirmed": "Confirmed",
+    "purchases.statusCancelled": "Cancelled",
+    "purchases.statusSoldOut": "Sold Out",
+
+    // Notifications
+    "nav.notif": "Alerts",
+    "notif.title": "Notifications",
+    "notif.empty": "No notifications yet",
+    "notif.markAllRead": "Mark all read",
 
     // General
     "general.loading": "Loading...",
@@ -388,6 +423,10 @@ const translations = {
     "products.noComments": "Aucun commentaire",
     "products.addComment": "Ajouter un commentaire...",
     "products.sendComment": "Envoyer",
+    "requests.comments": "Commentaires",
+    "requests.noComments": "Aucun commentaire",
+    "requests.addComment": "Ecrire un message...",
+    "requests.sendComment": "Envoyer",
     "products.delete": "Supprimer le produit",
     "products.deleteConfirm": "Voulez-vous vraiment supprimer ce produit ?",
     "products.deleted": "Produit supprime",
@@ -399,6 +438,37 @@ const translations = {
     "audit.action": "Action",
     "audit.user": "Utilisateur",
     "audit.details": "Details",
+
+    // Chat
+    "chat.title": "Discussion",
+    "chat.live": "En direct",
+    "chat.connecting": "Connexion...",
+    "chat.empty": "Aucun message",
+    "chat.emptyDesc": "Commencez la conversation",
+    "chat.placeholder": "Ecrire un message...",
+    "chat.sending": "envoi...",
+    "chat.holdToRecord": "Maintenez pour enregistrer",
+    "chat.recording": "Enregistrement...",
+    "chat.voiceMessage": "Message vocal",
+
+    // Purchases
+    "purchases.title": "Demandes d'achat",
+    "purchases.myPurchases": "Mes Achats",
+    "purchases.noPurchases": "Aucune demande d'achat",
+    "purchases.pending": "En attente",
+    "purchases.history": "Historique",
+    "purchases.confirmed": "Achat confirme !",
+    "purchases.cancelled": "Achat annule",
+    "purchases.statusPending": "En attente",
+    "purchases.statusConfirmed": "Confirme",
+    "purchases.statusCancelled": "Annule",
+    "purchases.statusSoldOut": "Epuise",
+
+    // Notifications
+    "nav.notif": "Alertes",
+    "notif.title": "Notifications",
+    "notif.empty": "Aucune notification",
+    "notif.markAllRead": "Tout marquer lu",
 
     // General
     "general.loading": "Chargement...",

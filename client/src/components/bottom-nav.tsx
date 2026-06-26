@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n";
+import { useNotifications } from "@/lib/notification-context";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { t } = useI18n();
+  const { unreadCount, pendingPurchasesCount, setPanelOpen } = useNotifications();
 
   if (!user) return null;
 
@@ -26,22 +28,47 @@ export default function BottomNav() {
         <div className="max-w-2xl mx-auto flex justify-around items-center h-[72px] px-2">
           {links.map((link) => {
             const active = pathname.startsWith(link.href);
+            const showBadge = link.href === "/orders" && pendingPurchasesCount > 0;
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative flex flex-col items-center gap-1 px-5 py-2 rounded-2xl transition-all duration-200 ${
+                className={`relative flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-200 ${
                   active ? "text-indigo-600" : "text-slate-400 active:text-slate-600"
                 }`}
               >
                 {active && <div className="absolute -top-1 w-6 h-1 bg-indigo-500 rounded-full" />}
-                <svg className="w-6 h-6" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={link.iconPath} />
-                </svg>
+                <div className="relative">
+                  <svg className="w-6 h-6" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={link.iconPath} />
+                  </svg>
+                  {showBadge && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 animate-notif-pop">
+                      {pendingPurchasesCount}
+                    </span>
+                  )}
+                </div>
                 <span className={`text-[10px] font-semibold ${active ? "text-indigo-600" : ""}`}>{link.label}</span>
               </Link>
             );
           })}
+          {/* Notification bell */}
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="relative flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-200 text-slate-400 active:text-slate-600"
+          >
+            <div className="relative">
+              <svg className={`w-6 h-6 ${unreadCount > 0 ? "text-indigo-600" : ""}`} fill={unreadCount > 0 ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={unreadCount > 0 ? 0 : 1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-semibold">{t("nav.notif")}</span>
+          </button>
         </div>
       </div>
     </nav>

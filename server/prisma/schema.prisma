@@ -40,6 +40,7 @@ model User {
   orders         Order[]   @relation("BuyerOrders")
   sellerOrders   Order[]   @relation("SellerOrders")
   products       Product[]
+  notifications  Notification[]
 }
 
 model Product {
@@ -111,7 +112,23 @@ model Request {
   sellerId String
   seller   User   @relation("SellerRequests", fields: [sellerId], references: [id])
 
-  order Order?
+  order    Order?
+  comments RequestComment[]
+}
+
+model RequestComment {
+  id        String   @id @default(uuid())
+  text      String
+  type      String   @default("text")
+  image     String?
+  audio     String?
+  createdAt DateTime @default(now())
+
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  userName  String
+  userRole  String
 }
 
 model Order {
@@ -128,6 +145,19 @@ model Order {
   buyer     User    @relation("BuyerOrders", fields: [buyerId], references: [id])
   sellerId  String
   seller    User    @relation("SellerOrders", fields: [sellerId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {

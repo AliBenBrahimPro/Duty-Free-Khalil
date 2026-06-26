@@ -12,7 +12,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (
+const imageFilter = (
   _req: Express.Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
@@ -25,8 +25,30 @@ const fileFilter = (
   }
 };
 
+const chatFilter = (
+  _req: Express.Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
+  const allowed = [
+    "image/jpeg", "image/png", "image/webp", "image/jpg",
+    "audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav",
+  ];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("File type not allowed"));
+  }
+};
+
 export const upload = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: imageFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+export const chatUpload = multer({
+  storage,
+  fileFilter: chatFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
 });

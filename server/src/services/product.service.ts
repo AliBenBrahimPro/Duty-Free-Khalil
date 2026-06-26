@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js";
 import { AuditService } from "./audit.service.js";
+import { NotificationService } from "./notification.service.js";
 
 const sellerSelect = { id: true, firstName: true, lastName: true, username: true, profileImage: true };
 
@@ -151,6 +152,7 @@ export class ProductService {
       details: `${product.name}`,
     });
 
+    NotificationService.onProductPurchase(purchase, product, buyerName).catch(() => {});
     return purchase;
   }
 
@@ -183,6 +185,7 @@ export class ProductService {
       details: `${purchase.product.name} — buyer: ${purchase.buyerId}`,
     });
 
+    NotificationService.onPurchaseConfirmed(purchase, purchase.product, purchase.buyerId).catch(() => {});
     return updatedPurchase;
   }
 
@@ -209,6 +212,7 @@ export class ProductService {
       details: `${purchase.product.name}`,
     });
 
+    NotificationService.onPurchaseCancelled(purchase, purchase.product, purchase.buyerId).catch(() => {});
     return updated;
   }
 
@@ -238,13 +242,33 @@ export class ProductService {
     });
   }
 
+  static async getSellerAllPurchases(sellerId: string) {
+    const purchases = await prisma.purchase.findMany({
+      where: { sellerId },
+      include: {
+        product: { select: { id: true, name: true, image: true, price: true, currency: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    const buyerIds = [...new Set(purchases.map(p => p.buyerId))];
+    const buyers = await prisma.user.findMany({
+      where: { id: { in: buyerIds } },
+      select: sellerSelect,
+    });
+    const buyerMap = Object.fromEntries(buyers.map(b => [b.id, b]));
+    return purchases.map(p => ({ ...p, buyer: buyerMap[p.buyerId] || null }));
+  }
+
   static async addComment(productId: string, userId: string, userName: string, userRole: string, text: string) {
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) throw new Error("Product not found");
 
-    return prisma.comment.create({
+    const comment = await prisma.comment.create({
       data: { text, productId, userId, userName, userRole },
     });
+
+    NotificationService.onProductComment(productId, product, userId, userName).catch(() => {});
+    return comment;
   }
 
   static async getComments(productId: string) {
